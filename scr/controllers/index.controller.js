@@ -10,10 +10,18 @@ const pool = new Pool({
 
 const getUsers = async(req , res) => {
     const response = await pool.query('SELECT * FROM users');
-    res.status(200).json(response.rows);
+    var data = {
+        'status': 200,
+        'success': 'true',
+        'message': 'users',
+        'data': response.rows
+    };
+    res.json(data);
+    res.end();
 }
 
 const getUserById = async (req, res) => {
+
     const id = req.params.id;
     //res.send('User id '+ req.params.id)
     const response = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
@@ -21,14 +29,26 @@ const getUserById = async (req, res) => {
 };
 
 const createUser = async (req, res) => {
-    const { name, email } = req.body;
+    const {
+        nip,
+        name,
+        pass,
+        instansi,
+        email
+    } = req.body;
 
-    const response = await pool.query('INSERT INTO users (name, email) VALUES ($1, $2)', [name, email]);
+    const response = await pool.query('INSERT INTO users (nip, name, pass, instansi, email) VALUES ($1, $2, $3, $4, $5)', [nip, name, pass, instansi, email]);
     console.log(response);
     res.json({
         message : 'Sukses menambah user',
         body: {
-            user: {name, email}            
+            user: {
+                nip,
+                name,
+                pass,
+                instansi,
+                email
+            }
         }
     })
 }
@@ -36,14 +56,11 @@ const createUser = async (req, res) => {
 const updateUser = async (req, res) => {
     const id = parseInt(req.params.id);
     const {
-        name,
-        email
+        nip, name, pass, instansi, email
     } = req.body;
 
-    const response = await pool.query('UPDATE users SET name = $1, email = $2 WHERE id = $3', [
-        name,
-        email,
-        id
+    const response = await pool.query('UPDATE users SET nip = $1, name = $2, pass = $3, instansi = $4, email = $5 WHERE id = $6', [
+        nip, name, pass, instansi, email,id
     ]);
     res.json('User Updated Successfully');
 };
@@ -53,7 +70,41 @@ const deleteUser = async (req, res) => {
   //res.send('User id '+ req.params.id)
   const response = await pool.query('DELETE FROM users WHERE id = $1', [id]);
   console.log(response)
-  res.json(`User ${id} deleted Successfully`);
+  res.json(`User ID ${id} deleted Successfully`);
+}
+
+const loginUser = async (req, res) => {
+    const {
+        email,
+        pass,
+    } = req.body;
+
+    const response = await pool.query('SELECT * FROM users WHERE email = $1 AND pass = MD5($2)',[email,pass]);
+    if (response.rowCount == 1) {
+        //request.session.loggedin = true;
+        //request.session.email = email;
+        //response.redirect('/home');
+        console.log(response);
+        var data = {
+            'status': 200,
+            'success': 'true',
+            'message': 'login successfully',
+            'data': response.rows
+            };
+            res.json(data);
+            res.end();
+    } else {
+        //response.send('')
+        console.log(response);
+        var data = {
+            'status': 400,
+            'success': 'false',
+            'message': 'login username or password wrong',
+            'data': response.rows
+        };
+        res.json(data);
+        res.end();
+    }   
 }
 
 module.exports = {
@@ -61,5 +112,6 @@ module.exports = {
     getUserById,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    loginUser
 }
